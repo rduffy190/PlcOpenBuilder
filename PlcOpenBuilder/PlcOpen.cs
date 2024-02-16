@@ -209,7 +209,7 @@ namespace PlcOpenBuilder
         public void SaveDoc(string fileName)
         {
             XmlNode contentHeader = _doc.DocumentElement.SelectSingleNode("ns1:contentHeader", _nsManager);
-            XmlAttribute UpdateTime = contentHeader.Attributes.OfType<XmlAttribute>().Where(x => x.Name == "modificationDateTime").First(); 
+            XmlAttribute UpdateTime = contentHeader.Attributes.OfType<XmlAttribute>().First(x => x.Name == "modificationDateTime"); 
             UpdateTime.Value = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff");
             _doc.Save(fileName);
         }
