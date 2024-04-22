@@ -10,6 +10,10 @@ namespace PlcOpenBuilder
 {
     public class PlcOpen
     {
+        /// <summary>
+        /// Constructor used to edit existing XML
+        /// </summary>
+        /// <param name="fileName"> File path to existing XML</param>
         public PlcOpen(string fileName)
         {
             _doc = new System.Xml.XmlDocument();
@@ -25,6 +29,13 @@ namespace PlcOpenBuilder
             _nsManager.AddNamespace("ns1", "http://www.plcopen.org/xml/tc6_0200");
             _nsManager.AddNamespace("xhtml", "http://www.w3.org/1999/xhtml");
         }
+        /// <summary>
+        /// Constructor to create new Xml
+        /// </summary>
+        /// <param name="companyName">Description, IE Bosch-Rexroth</param>
+        /// <param name="productName">Destription, IE Ctrlx Core</param>
+        /// <param name="productVersion">Descrition, IE 1.0</param>
+        /// <param name="projectName">Description, IE CodeGenerator</param>
         public PlcOpen(string companyName, string productName, string productVersion, string projectName) {
             _doc = new XmlDocument();
             XmlProcessingInstruction xmlInstructions = _doc.CreateProcessingInstruction("xml", "version=\"1.0\"  encoding=\"utf-8\"");
@@ -101,30 +112,102 @@ namespace PlcOpenBuilder
         {
             throw new NotImplementedException();
         }
-
+        /// <summary>
+        /// Adds an input to a POU
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
         public void AddInput(string blockName,string varName, string varType)
         {
             System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:inputVars", _nsManager);
             inputVars.AppendChild(buildVariableNode(varName, varType));
 
         }
+        /// <summary>
+        /// Adds an output to a POU
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
         public void AddOutput(string blockName, string varName, string varType)
         {
             System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:outputVars", _nsManager);
             inputVars.AppendChild(buildVariableNode(varName, varType));
         }
+        /// <summary>
+        /// Adds a local var to the POU
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
         public void AddVar(string blockName, string varName, string varType)
         {
             System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:localVars", _nsManager);
             inputVars.AppendChild(buildVariableNode(varName, varType));
         }
+        /// <summary>
+        /// Adds a local constant var to pou
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
+        public void AddConstVar(string blockName, string varName, string varType)
+        {
+            System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectNodes("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:localVars", _nsManager)[1];
+            inputVars.AppendChild(buildVariableNode(varName, varType));
+        }
+        /// <summary>
+        /// sets the length of a string, IE String(100) 
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="length">String representation of the number of chars in the string type, IE 200 is string(200)>
+        public void setStringLength(string blockName, string varName, string length)
+        {
+            System.Xml.XmlNode pouInterface = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface", _nsManager);
+            XmlNode Var = null;
+            foreach (XmlNode vars in pouInterface.ChildNodes)
+            {
+                try
+                {
+                    Var = vars.ChildNodes.OfType<XmlNode>().First(x => (x.Attributes.GetNamedItem("name") != null && x.Attributes.GetNamedItem("name").Value == varName));
+                }
+                catch (Exception ex)
+                {
+                    continue;
+                }
+                if (Var != null) { break; }
+            }
+            if (Var != null)
+            {
+                XmlAttribute lengthAtr = _doc.CreateAttribute("length");
+                lengthAtr.Value = length;
+                XmlNode type = Var.SelectSingleNode("ns1:type/ns1:string", _nsManager);
+                if (type != null)
+                    type.Attributes.Append(lengthAtr); 
+            }
+        }
+        /// <summary>
+        /// Sets the start up value of built in type
+        /// </summary>
+        /// <param name="blockName"></param>
+        /// <param name="varName"></param>
+        /// <param name="value"></param>
         public void InitialValue(string blockName, string varName, string value)
         {
             System.Xml.XmlNode pouInterface = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface", _nsManager);
             XmlNode Var = null; 
             foreach(XmlNode vars in pouInterface.ChildNodes)
             {
-                Var = vars.ChildNodes.OfType<XmlNode>().First(x => (x.Attributes.GetNamedItem("name") != null && x.Attributes.GetNamedItem("name").Value == varName));
+                try
+                {
+                    Var = vars.ChildNodes.OfType<XmlNode>().First(x => (x.Attributes.GetNamedItem("name") != null && x.Attributes.GetNamedItem("name").Value == varName));
+                }
+                catch (Exception ex)
+                {
+                    continue;
+                }
                 if (Var != null) { break; }
             }
             if (Var != null)
@@ -138,6 +221,12 @@ namespace PlcOpenBuilder
                 Var.AppendChild(initialValue);
             }
         }
+        /// <summary>
+        /// stes the start up values for a UDT 
+        /// </summary>
+        /// <param name="blockName"></param>
+        /// <param name="varName"></param>
+        /// <param name="values"></param>
         public void InitialValue(string blockName, string varName,UDT values)
         {
             System.Xml.XmlNode pouInterface = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface", _nsManager);
@@ -169,6 +258,11 @@ namespace PlcOpenBuilder
                 Var.AppendChild(initialValue);
             }
         }
+        /// <summary>
+        /// Adds a POU
+        /// </summary>
+        /// <param name="pouName">Name of POU</param>
+        /// <param name="type">Type of POU</param>
         public void AddPou(string pouName, POUType type)
         {
             XmlNode pous = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous", _nsManager);
@@ -184,16 +278,25 @@ namespace PlcOpenBuilder
             XmlNode outputVars = _doc.CreateNode(XmlNodeType.Element, "outputVars", _nsManager.LookupNamespace("ns1"));
             XmlNode inoutVars = _doc.CreateNode(XmlNodeType.Element, "inOutVars", _nsManager.LookupNamespace("ns1"));
             XmlNode localVars = _doc.CreateNode(XmlNodeType.Element, "localVars", _nsManager.LookupNamespace("ns1"));
+            XmlNode ConstVars = _doc.CreateNode(XmlNodeType.Element, "localVars", _nsManager.LookupNamespace("ns1"));
+            XmlAttribute constant = _doc.CreateAttribute("constant");
+            constant.Value = "true";
+            ConstVars.Attributes.Append(constant); 
             blockInterface.AppendChild(inputVars);
             blockInterface.AppendChild(outputVars);
             blockInterface.AppendChild(inoutVars); 
             blockInterface.AppendChild(localVars);
+            blockInterface.AppendChild(ConstVars);
             pou.AppendChild(blockInterface);
             XmlNode body = _doc.CreateNode(XmlNodeType.Element, "body", _nsManager.LookupNamespace("ns1"));
             pou.AppendChild(body);
             pous.AppendChild(pou); 
         }
-       
+       /// <summary>
+       /// Takes a string of ST code and puts it into the block
+       /// </summary>
+       /// <param name="blockName">POU of an ST block</param>
+       /// <param name="STCode">The actual ST code represented as a string</param>
         public void CreateST(string blockName, string STCode)
         {
             XmlNode body = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:body", _nsManager);
@@ -206,6 +309,10 @@ namespace PlcOpenBuilder
             ST.AppendChild(codeContainer);
             body.AppendChild(ST);
         }
+        /// <summary>
+        /// Save the xml to be imported 
+        /// </summary>
+        /// <param name="fileName"></param>
         public void SaveDoc(string fileName)
         {
             XmlNode contentHeader = _doc.DocumentElement.SelectSingleNode("ns1:contentHeader", _nsManager);
@@ -213,6 +320,7 @@ namespace PlcOpenBuilder
             UpdateTime.Value = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff");
             _doc.Save(fileName);
         }
+    
         private XmlNode buildVariableNode(string varName, string varType)
         {
             System.Xml.XmlNode variable = _doc.CreateNode(System.Xml.XmlNodeType.Element, "variable", _nsManager.LookupNamespace("ns1"));
@@ -223,7 +331,14 @@ namespace PlcOpenBuilder
             System.Xml.XmlNode type = _doc.CreateNode(System.Xml.XmlNodeType.Element, "type", _nsManager.LookupNamespace("ns1"));
             if (_elementaryTypes.Particle.Items.OfType<XmlSchemaElement>().Any(x => x.Name.ToLower() == varType.ToLower()))
             {
-                dataType = _doc.CreateNode(System.Xml.XmlNodeType.Element, varType.ToUpper(), _nsManager.LookupNamespace("ns1"));
+                if (varType.ToLower() == "string")
+                {
+                    dataType = _doc.CreateNode(System.Xml.XmlNodeType.Element, varType.ToLower(), _nsManager.LookupNamespace("ns1"));
+                }
+                else
+                {
+                    dataType = _doc.CreateNode(System.Xml.XmlNodeType.Element, varType.ToUpper(), _nsManager.LookupNamespace("ns1"));
+                }
             }
             else
             {
