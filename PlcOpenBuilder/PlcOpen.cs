@@ -327,7 +327,11 @@ namespace PlcOpenBuilder
             if (Var != null)
             {
                 XmlNode documentation = _doc.CreateNode(XmlNodeType.Element, "documentation", _nsManager.LookupNamespace("ns1"));
-                documentation.InnerText = "<xhtml xmlns=\"http://www.w3.org/1999/xhtml\">" + value + "</xhtml>"; 
+                XmlNode codeContainer = _doc.CreateNode(XmlNodeType.Element, "xhtml", _nsManager.LookupNamespace("xhtml"));
+                XmlNode Comment = _doc.CreateNode(XmlNodeType.Text, "#text", _nsManager.LookupNamespace("xhtml")); 
+                Comment.Value = value;
+                codeContainer.AppendChild(Comment);
+                documentation.AppendChild(codeContainer);
                 Var.AppendChild(documentation);
             }
         }
