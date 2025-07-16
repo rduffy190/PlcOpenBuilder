@@ -136,6 +136,17 @@ namespace PlcOpenBuilder
             inputVars.AppendChild(buildVariableNode(varName, varType));
         }
         /// <summary>
+        /// Adds an inOutput to a POU
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
+        public void AddInOut(string blockName, string varName, string varType)
+        {
+            System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:inOutVars", _nsManager);
+            inputVars.AppendChild(buildVariableNode(varName, varType));
+        }
+        /// <summary>
         /// Adds a local var to the POU
         /// </summary>
         /// <param name="blockName">Name of POU</param>
