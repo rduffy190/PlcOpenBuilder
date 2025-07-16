@@ -38,6 +38,7 @@ namespace PlcOpenBuilder
         /// <param name="productVersion">Descrition, IE 1.0</param>
         /// <param name="projectName">Description, IE CodeGenerator</param>
         public PlcOpen(string companyName, string productName, string productVersion, string projectName) {
+            //Builds out the XML Header data for PLC Open
             _doc = new XmlDocument();
             XmlProcessingInstruction xmlInstructions = _doc.CreateProcessingInstruction("xml", "version=\"1.0\"  encoding=\"utf-8\"");
             _doc.AppendChild(xmlInstructions);
@@ -374,6 +375,7 @@ namespace PlcOpenBuilder
         /// <param name="type">Type of POU</param>
         public void AddPou(string pouName, POUType type)
         {
+            //Builds a POU with all possible variable interfaces
             XmlNode pous = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous", _nsManager);
             XmlNode pou = _doc.CreateNode(XmlNodeType.Element,"pou", _nsManager.LookupNamespace("ns1"));
             XmlAttribute name = _doc.CreateAttribute("name"); 
