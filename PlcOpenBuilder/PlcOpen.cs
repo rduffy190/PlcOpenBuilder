@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -147,6 +148,17 @@ namespace PlcOpenBuilder
             inputVars.AppendChild(buildVariableNode(varName, varType));
         }
         /// <summary>
+        /// Adds an temp to a POU
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
+        public void AddTemp(string blockName, string varName, string varType)
+        {
+            System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:tempVars", _nsManager);
+            inputVars.AppendChild(buildVariableNode(varName, varType));
+        }
+        /// <summary>
         /// Adds a local var to the POU
         /// </summary>
         /// <param name="blockName">Name of POU</param>
@@ -165,8 +177,65 @@ namespace PlcOpenBuilder
         /// <param name="varType">Type of Variable, can be a UDT/FB</param>
         public void AddConstVar(string blockName, string varName, string varType)
         {
-            System.Xml.XmlNode inputVars = _doc.DocumentElement.SelectNodes("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:localVars", _nsManager)[1];
-            inputVars.AppendChild(buildVariableNode(varName, varType));
+            System.Xml.XmlNodeList nodes = _doc.DocumentElement.SelectNodes("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:localVars", _nsManager);
+            XmlNode constant = null;
+            foreach (XmlNode node in nodes)
+            {
+                if (node.Attributes != null)
+                {
+                    foreach (XmlAttribute att in node.Attributes)
+                    {
+                        if (att.Name == "constant")
+                        {
+                            constant = node;
+                            break; 
+                        }
+                    }
+                
+                }
+            }
+            if (constant != null)
+                constant.AppendChild(buildVariableNode(varName, varType));
+        }
+        /// <summary>
+        /// Adds a local persistant var to pou
+        /// </summary>
+        /// <param name="blockName">Name of POU</param>
+        /// <param name="varName">Name of Variable</param>
+        /// <param name="varType">Type of Variable, can be a UDT/FB</param>
+        public void AddPersistentVar(string blockName, string varName, string varType)
+        {
+            System.Xml.XmlNodeList nodes = _doc.DocumentElement.SelectNodes("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface/ns1:localVars", _nsManager);
+            XmlNode persistent = null; 
+            bool persistFound = false;
+            bool retainFound = false; 
+            foreach (XmlNode node in nodes)
+            {
+                if (node.Attributes != null)
+                {
+                    foreach (XmlAttribute att in node.Attributes)
+                    {
+                        if (att.Name == "persistent")
+                        {
+                            persistFound = true;
+                        }
+                        if(att.Name =="retain")
+                        {
+                            retainFound = true;
+                        }
+                        if (persistFound && retainFound)
+                        {
+                            persistent = node;
+                            break; 
+                        }
+                       
+                    }
+                    persistFound = false;
+                    retainFound = false; 
+                }
+            }
+            if(persistent != null)
+                persistent.AppendChild(buildVariableNode(varName, varType));
         }
         /// <summary>
         /// sets the length of a string, IE String(100) 
@@ -233,6 +302,35 @@ namespace PlcOpenBuilder
             }
         }
         /// <summary>
+        /// Adds a comment to variable
+        /// </summary>
+        /// <param name="blockName"></param>
+        /// <param name="varName"></param>
+        /// <param name="value"></param>
+        public void VarComment(string blockName, string varName, string value)
+        {
+            System.Xml.XmlNode pouInterface = _doc.DocumentElement.SelectSingleNode("ns1:types/ns1:pous/ns1:pou[@name=\'" + blockName + "\']/ns1:interface", _nsManager);
+            XmlNode Var = null;
+            foreach (XmlNode vars in pouInterface.ChildNodes)
+            {
+                try
+                {
+                    Var = vars.ChildNodes.OfType<XmlNode>().First(x => (x.Attributes.GetNamedItem("name") != null && x.Attributes.GetNamedItem("name").Value == varName));
+                }
+                catch (Exception ex)
+                {
+                    continue;
+                }
+                if (Var != null) { break; }
+            }
+            if (Var != null)
+            {
+                XmlNode documentation = _doc.CreateNode(XmlNodeType.Element, "documentation", _nsManager.LookupNamespace("ns1"));
+                documentation.InnerText = "<xhtml xmlns=\"http://www.w3.org/1999/xhtml\">" + value + "</xhtml>"; 
+                Var.AppendChild(documentation);
+            }
+        }
+        /// <summary>
         /// stes the start up values for a UDT 
         /// </summary>
         /// <param name="blockName"></param>
@@ -290,14 +388,27 @@ namespace PlcOpenBuilder
             XmlNode inoutVars = _doc.CreateNode(XmlNodeType.Element, "inOutVars", _nsManager.LookupNamespace("ns1"));
             XmlNode localVars = _doc.CreateNode(XmlNodeType.Element, "localVars", _nsManager.LookupNamespace("ns1"));
             XmlNode ConstVars = _doc.CreateNode(XmlNodeType.Element, "localVars", _nsManager.LookupNamespace("ns1"));
+
             XmlAttribute constant = _doc.CreateAttribute("constant");
             constant.Value = "true";
-            ConstVars.Attributes.Append(constant); 
+            ConstVars.Attributes.Append(constant);
+            XmlNode PersistantVars = _doc.CreateNode(XmlNodeType.Element, "localVars", _nsManager.LookupNamespace("ns1"));
+            XmlAttribute Persist = _doc.CreateAttribute("persistent");
+            Persist.Value = "true";
+            XmlAttribute retain = _doc.CreateAttribute("retain");
+            retain.Value = "true";
+            PersistantVars.Attributes.Append(Persist);
+            PersistantVars.Attributes.Append(retain);
+
+            XmlNode tempVars = _doc.CreateNode(XmlNodeType.Element, "tempVars", _nsManager.LookupNamespace("ns1"));
+
             blockInterface.AppendChild(inputVars);
             blockInterface.AppendChild(outputVars);
             blockInterface.AppendChild(inoutVars); 
             blockInterface.AppendChild(localVars);
+            blockInterface.AppendChild(PersistantVars);
             blockInterface.AppendChild(ConstVars);
+            blockInterface.AppendChild(tempVars);
             pou.AppendChild(blockInterface);
             XmlNode body = _doc.CreateNode(XmlNodeType.Element, "body", _nsManager.LookupNamespace("ns1"));
             pou.AppendChild(body);
